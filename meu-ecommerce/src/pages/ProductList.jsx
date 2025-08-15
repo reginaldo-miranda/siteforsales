@@ -78,17 +78,7 @@ const ProductList = () => {
     });
   };
 
-  const excluirProduto = async (id) => {
-    if (!confirm('Tem certeza que deseja excluir este produto?')) return;
-    
-    try {
-      await axios.delete(`${import.meta.env.VITE_API_URL}/api/produtos/${id}`);
-      carregarProdutos();
-    } catch (err) {
-      console.error('Erro ao excluir produto:', err);
-      alert('Erro ao excluir produto.');
-    }
-  };
+
 
   if (loading) return <div className="loading">Carregando produtos...</div>;
   if (error) return <div className="error">{error}</div>;
@@ -170,18 +160,9 @@ const ProductList = () => {
                 )}
               </div>
               <div className="product-actions">
-                <Link to={`/produtos/${produto._id}`} className="view-details-btn">
+                <Link to={`/produto/${produto._id}`} className="view-details-btn">
                   Ver detalhes
                 </Link>
-                <Link to={`/produtos/editar/${produto._id}`} className="edit-btn">
-                  Editar
-                </Link>
-                <button 
-                  onClick={() => excluirProduto(produto._id)}
-                  className="delete-btn"
-                >
-                  Excluir
-                </button>
               </div>
             </div>
           ))}

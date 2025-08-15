@@ -32,16 +32,10 @@ const Navbar = () => {
 
         <ul className="nav-menu">
           <li className="nav-item">
-            <Link to="/" className="nav-link">Home</Link>
+            <Link to="/" className="nav-link">Produtos</Link>
           </li>
           <li className="nav-item">
-            <Link to="/produtos" className="nav-link">Produtos</Link>
-          </li>
-          <li className="nav-item">
-            <Link to="/produtos/novo" className="nav-link">Cadastrar Produto</Link>
-          </li>
-          <li className="nav-item">
-            <Link to="/admin" className="nav-link">Administração</Link>
+            <Link to="/login-admin" className="nav-link admin-link">Área Administrativa</Link>
           </li>
         </ul>
 

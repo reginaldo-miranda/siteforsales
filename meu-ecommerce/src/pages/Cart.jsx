@@ -116,13 +116,13 @@ const Cart = () => {
             </div>
             
             <div className="cart-actions">
-              <button onClick={clearCart} className="clear-cart-btn">
-                Limpar Carrinho
-              </button>
-              <button className="checkout-btn">
-                Finalizar Compra
-              </button>
-            </div>
+          <button onClick={clearCart} className="clear-cart-btn">
+            Limpar Carrinho
+          </button>
+          <Link to="/checkout" className="checkout-btn">
+            Finalizar Compra
+          </Link>
+        </div>
           </div>
         </>
       )}
