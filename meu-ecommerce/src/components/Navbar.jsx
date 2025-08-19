@@ -42,6 +42,12 @@ const Navbar = () => {
           <li className="nav-item">
             <Link to="/produtos" className="nav-link" onClick={() => setIsMenuOpen(false)}>Produtos</Link>
           </li>
+          <li className="nav-item">
+            <Link to="/produtos/novo" className="nav-link">Cadastrar Produto</Link>
+          </li>
+          <li className="nav-item">
+            <Link to="/admin" className="nav-link">Administração</Link>
+          </li>
         </ul>
 
         <div className="navbar-right">
