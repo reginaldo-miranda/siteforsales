@@ -39,14 +39,14 @@ async function criarDadosIniciais() {
           nome: "Smartphone Samsung Galaxy",
           descricao: "Smartphone com tela de 6.1 polegadas, 128GB de armazenamento",
           preco: 899.99,
-          imagem: "https://br.freepik.com/fotos-vetores-gratis/smartphone",
+          imagem: "https://via.placeholder.com/300x300?text=Samsung+Galaxy",
           estoque: 15
         },
         {
           nome: "Notebook Dell Inspiron",
           descricao: "Notebook com processador Intel i5, 8GB RAM, 256GB SSD",
           preco: 2499.99,
-          imagem: "https://www.dell.com/pt-br/shop/notebooks-dell/notebook-inspiron-15/spd/inspiron-15-3520-laptop",
+          imagem: "https://via.placeholder.com/300x300?text=Dell+Inspiron",
           estoque: 8
         },
         {
