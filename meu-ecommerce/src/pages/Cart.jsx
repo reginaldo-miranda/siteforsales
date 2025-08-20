@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 const Cart = () => {
+  const navigate = useNavigate();
   const [cartItems, setCartItems] = useState([]);
   const [total, setTotal] = useState(0);
 
@@ -58,6 +59,15 @@ const Cart = () => {
     localStorage.removeItem('cart');
   };
 
+  const irParaCheckout = () => {
+    if (cartItems.length === 0) {
+      alert('Seu carrinho está vazio!');
+      return;
+    }
+    
+    navigate('/checkout');
+  };
+
   return (
     <div className="cart-container">
       <h2>Carrinho de Compras</h2>
@@ -102,8 +112,9 @@ const Cart = () => {
                 <button 
                   onClick={() => removeItem(item._id)}
                   className="remove-btn"
+                  title="Remover item"
                 >
-                  Remover
+                  ×
                 </button>
               </div>
             ))}
@@ -119,7 +130,7 @@ const Cart = () => {
               <button onClick={clearCart} className="clear-cart-btn">
                 Limpar Carrinho
               </button>
-              <button className="checkout-btn">
+              <button onClick={irParaCheckout} className="checkout-btn">
                 Finalizar Compra
               </button>
             </div>

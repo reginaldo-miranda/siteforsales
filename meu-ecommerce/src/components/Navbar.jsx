@@ -1,9 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 
-const Navbar = () => {
+const Navbar = ({ isMenuOpen, setIsMenuOpen }) => {
   const [cartCount, setCartCount] = useState(0);
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   useEffect(() => {
     // Atualizar contagem de itens do carrinho quando o componente montar
@@ -11,10 +10,14 @@ const Navbar = () => {
 
     // Adicionar event listener para atualizar quando o localStorage mudar
     window.addEventListener('storage', updateCartCount);
+    
+    // Adicionar event listener personalizado para atualizações do carrinho
+    window.addEventListener('cartUpdated', updateCartCount);
 
     // Cleanup
     return () => {
       window.removeEventListener('storage', updateCartCount);
+      window.removeEventListener('cartUpdated', updateCartCount);
     };
   }, []);
 
@@ -22,6 +25,12 @@ const Navbar = () => {
     const cart = JSON.parse(localStorage.getItem('cart')) || [];
     const count = cart.reduce((total, item) => total + item.quantidade, 0);
     setCartCount(count);
+  };
+
+  // Função utilitária para disparar evento de atualização do carrinho
+  // Esta função pode ser chamada de outras partes da aplicação
+  window.updateCartDisplay = () => {
+    window.dispatchEvent(new Event('cartUpdated'));
   };
 
   const toggleMenu = () => {
@@ -36,18 +45,6 @@ const Navbar = () => {
         </Link>
 
         <ul className={`nav-menu ${isMenuOpen ? 'nav-menu-active' : ''}`}>
-          <li className="nav-item">
-            <Link to="/" className="nav-link" onClick={() => setIsMenuOpen(false)}>Home</Link>
-          </li>
-          <li className="nav-item">
-            <Link to="/produtos" className="nav-link" onClick={() => setIsMenuOpen(false)}>Produtos</Link>
-          </li>
-          <li className="nav-item">
-            <Link to="/produtos/novo" className="nav-link">Cadastrar Produto</Link>
-          </li>
-          <li className="nav-item">
-            <Link to="/admin" className="nav-link">Administração</Link>
-          </li>
         </ul>
 
         <div className="navbar-right">

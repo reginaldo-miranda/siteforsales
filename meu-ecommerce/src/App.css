@@ -89,8 +89,8 @@ button {
 
 .products-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-  gap: 24px;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 20px;
   margin-top: 24px;
 }
 
@@ -108,7 +108,7 @@ button {
 
 .product-image {
   width: 100%;
-  height: 200px;
+  height: 150px;
   object-fit: cover;
 }
 
@@ -402,7 +402,8 @@ button {
   display: inline-block;
   background-color: var(--primary-color);
   color: var(--white);
-  padding: 12px 24px;
+  padding: 10px 20px;
+  font-size: 0.95rem;
   border-radius: 4px;
   transition: background-color 0.3s ease;
 }
@@ -422,6 +423,7 @@ button {
   display: grid;
   grid-template-columns: 3fr 1fr 1fr 1fr;
   align-items: center;
+  gap: 16px;
   background-color: var(--white);
   padding: 16px;
   border-radius: 8px;
@@ -437,13 +439,13 @@ button {
 .quantity-btn {
   background-color: var(--medium-gray);
   color: var(--text-color);
-  width: 30px;
-  height: 30px;
+  width: 24px;
+  height: 24px;
   display: flex;
   align-items: center;
   justify-content: center;
   border-radius: 4px;
-  font-size: 1.2rem;
+  font-size: 0.9rem;
   padding: 0;
 }
 
@@ -460,8 +462,16 @@ button {
 .remove-btn {
   background-color: var(--accent-color);
   color: var(--white);
-  padding: 8px 12px;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   border-radius: 4px;
+  font-size: 1rem;
+  font-weight: bold;
+  border: none;
+  cursor: pointer;
   transition: background-color 0.3s ease;
 }
 
@@ -499,6 +509,11 @@ button {
 .clear-cart-btn {
   background-color: var(--medium-gray);
   color: var(--text-color);
+  padding: 10px 16px;
+  font-size: 0.9rem;
+  border-radius: 4px;
+  border: none;
+  cursor: pointer;
   transition: background-color 0.3s ease;
 }
 
@@ -510,8 +525,11 @@ button {
 .checkout-btn {
   background-color: var(--secondary-color);
   color: var(--white);
-  padding: 12px 24px;
-  font-size: 1.1rem;
+  padding: 10px 20px;
+  font-size: 0.95rem;
+  border-radius: 4px;
+  border: none;
+  cursor: pointer;
   transition: background-color 0.3s ease;
 }
 
@@ -769,8 +787,8 @@ button {
 
 .produtos-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 30px;
+  grid-template-columns: repeat(auto-fill, minmax(186px, 1fr));
+  gap: 21px;
   margin-bottom: 40px;
 }
 
@@ -790,7 +808,7 @@ button {
 
 .produto-image {
   position: relative;
-  height: 250px;
+  height: 152px;
   overflow: hidden;
 }
 
@@ -826,11 +844,11 @@ button {
 }
 
 .produto-info {
-  padding: 20px;
+  padding: 13px;
 }
 
 .produto-nome {
-  font-size: 1.2rem;
+  font-size: 1.52rem;
   font-weight: 600;
   color: var(--primary-color);
   margin-bottom: 8px;
@@ -839,25 +857,25 @@ button {
 
 .produto-descricao {
   color: var(--text-color);
-  font-size: 0.9rem;
-  margin-bottom: 12px;
+  font-size: 1.18rem;
+  margin-bottom: 13px;
   opacity: 0.8;
   line-height: 1.4;
 }
 
 .produto-preco {
-  margin-bottom: 12px;
+  margin-bottom: 10px;
 }
 
 .preco-atual {
-  font-size: 1.4rem;
+  font-size: 1.69rem;
   font-weight: bold;
   color: var(--accent-color);
 }
 
 .produto-estoque {
-  margin-bottom: 16px;
-  font-size: 0.9rem;
+  margin-bottom: 13px;
+  font-size: 1.18rem;
 }
 
 .in-stock {
@@ -877,17 +895,17 @@ button {
 }
 
 .btn {
-  padding: 10px 16px;
+  padding: 10px 17px;
   border: none;
-  border-radius: 6px;
-  font-size: 0.9rem;
+  border-radius: 7px;
+  font-size: 1.18rem;
   font-weight: 500;
   text-decoration: none;
   text-align: center;
   cursor: pointer;
   transition: all 0.3s ease;
   flex: 1;
-  min-width: 120px;
+  min-width: 135px;
 }
 
 .btn-primary {
@@ -1147,6 +1165,199 @@ button {
   padding: 16px;
 }
 
+/* Estilos para Checkout */
+.checkout-container {
+  max-width: 560px;
+  margin: 0 auto;
+  padding: 14px;
+  background: var(--white);
+  border-radius: 6px;
+  box-shadow: var(--shadow);
+}
+
+.checkout-container h2 {
+  color: var(--primary-color);
+  margin-bottom: 21px;
+  text-align: center;
+  font-size: 1.4rem;
+}
+
+.order-summary {
+  background: var(--light-gray);
+  padding: 14px;
+  border-radius: 6px;
+  margin-bottom: 21px;
+}
+
+.order-summary h3 {
+  color: var(--text-color);
+  margin-bottom: 11px;
+  font-size: 0.9rem;
+}
+
+.order-items {
+  margin-bottom: 11px;
+}
+
+.order-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 7px 0;
+  border-bottom: 1px solid var(--medium-gray);
+}
+
+.order-item:last-child {
+  border-bottom: none;
+}
+
+.order-total {
+  text-align: right;
+  font-size: 0.84rem;
+  color: var(--primary-color);
+  padding-top: 11px;
+  border-top: 2px solid var(--primary-color);
+}
+
+.checkout-section {
+  margin-bottom: 21px;
+  padding: 14px;
+  border: 1px solid var(--medium-gray);
+  border-radius: 6px;
+}
+
+.checkout-section h3 {
+  color: var(--primary-color);
+  margin-bottom: 14px;
+  font-size: 0.9rem;
+  border-bottom: 2px solid var(--primary-color);
+  padding-bottom: 7px;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 8px;
+  align-items: start;
+}
+
+.form-grid input,
+.form-grid select {
+  padding: 8px 10px;
+  border: 1px solid var(--medium-gray);
+  border-radius: 4px;
+  font-size: 0.75rem;
+  transition: border-color 0.3s ease;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.document-type-group {
+  display: grid;
+  grid-template-columns: 80px 1fr;
+  gap: 4px;
+  align-items: center;
+}
+
+.document-type-group select {
+  padding: 8px 6px;
+  font-size: 0.7rem;
+}
+
+.document-type-group input {
+  padding: 8px 10px;
+}
+
+.card-details .form-grid {
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 6px;
+}
+
+.card-details .form-grid input {
+  padding: 6px 8px;
+  font-size: 0.7rem;
+}
+
+.form-grid input:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 5px rgba(52, 152, 219, 0.3);
+}
+
+.cep-group {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.cep-loading {
+  font-size: 0.7rem;
+  color: var(--primary-color);
+  font-style: italic;
+  margin-top: 2px;
+}
+
+.payment-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.payment-options label {
+  display: flex;
+  align-items: center;
+  padding: 6px 8px;
+  border: 1px solid var(--medium-gray);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  background: var(--white);
+  font-size: 0.8rem;
+}
+
+.payment-options label:hover {
+  border-color: var(--primary-color);
+  background: rgba(52, 152, 219, 0.05);
+}
+
+.payment-options input[type="radio"] {
+  margin-right: 4px;
+  transform: scale(0.7);
+}
+
+.payment-options input[type="radio"]:checked + label,
+.payment-options label:has(input[type="radio"]:checked) {
+  border-color: var(--primary-color);
+  background: rgba(52, 152, 219, 0.1);
+  color: var(--primary-color);
+  font-weight: bold;
+}
+
+.card-details {
+  margin-top: 8px;
+  padding: 8px;
+  background: rgba(52, 152, 219, 0.05);
+  border-radius: 4px;
+  border: 1px solid var(--primary-color);
+}
+
+.card-details h4 {
+  color: var(--primary-color);
+  margin-bottom: 6px;
+  font-size: 0.7rem;
+}
+
+.checkout-actions {
+  display: flex;
+  justify-content: space-between;
+  gap: 11px;
+  margin-top: 14px;
+  padding-top: 11px;
+  border-top: 2px solid var(--medium-gray);
+}
+
 /* Responsividade adicional */
 @media (max-width: 768px) {
   .form-row {
@@ -1175,5 +1386,37 @@ button {
   .product-actions {
     width: 100%;
     justify-content: flex-start;
+  }
+
+  /* Checkout responsivo */
+  .checkout-container {
+    margin: 10px;
+    padding: 15px;
+  }
+
+  .checkout-container h2 {
+    font-size: 1.5rem;
+  }
+
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .payment-options {
+    grid-template-columns: 1fr;
+  }
+
+  .checkout-actions {
+    flex-direction: column;
+  }
+
+  .order-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 5px;
+  }
+
+  .checkout-section {
+    padding: 15px;
   }
 }
