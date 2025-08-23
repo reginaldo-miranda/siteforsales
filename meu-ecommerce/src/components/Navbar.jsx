@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 
-const Navbar = () => {
+const Navbar = ({ isMenuOpen, setIsMenuOpen }) => {
   const [cartCount, setCartCount] = useState(0);
 
   useEffect(() => {
@@ -10,10 +10,14 @@ const Navbar = () => {
 
     // Adicionar event listener para atualizar quando o localStorage mudar
     window.addEventListener('storage', updateCartCount);
+    
+    // Adicionar event listener personalizado para atualizações do carrinho
+    window.addEventListener('cartUpdated', updateCartCount);
 
     // Cleanup
     return () => {
       window.removeEventListener('storage', updateCartCount);
+      window.removeEventListener('cartUpdated', updateCartCount);
     };
   }, []);
 
@@ -23,6 +27,16 @@ const Navbar = () => {
     setCartCount(count);
   };
 
+  // Função utilitária para disparar evento de atualização do carrinho
+  // Esta função pode ser chamada de outras partes da aplicação
+  window.updateCartDisplay = () => {
+    window.dispatchEvent(new Event('cartUpdated'));
+  };
+
+  const toggleMenu = () => {
+    setIsMenuOpen(!isMenuOpen);
+  };
+
   return (
     <nav className="navbar">
       <div className="navbar-container">
@@ -30,19 +44,21 @@ const Navbar = () => {
           Meu E-commerce
         </Link>
 
-        <ul className="nav-menu">
-          <li className="nav-item">
-            <Link to="/" className="nav-link">Produtos</Link>
-          </li>
-          <li className="nav-item">
-            <Link to="/login-admin" className="nav-link admin-link">Área Administrativa</Link>
-          </li>
+        <ul className={`nav-menu ${isMenuOpen ? 'nav-menu-active' : ''}`}>
         </ul>
 
-        <Link to="/carrinho" className="cart-icon">
-          <i className="fas fa-shopping-cart"></i>
-          {cartCount > 0 && <span className="cart-count">{cartCount}</span>}
-        </Link>
+        <div className="navbar-right">
+          <Link to="/carrinho" className="cart-icon">
+            <i className="fas fa-shopping-cart"></i>
+            {cartCount > 0 && <span className="cart-count">{cartCount}</span>}
+          </Link>
+          
+          <div className="hamburger" onClick={toggleMenu}>
+            <span className={`bar ${isMenuOpen ? 'active' : ''}`}></span>
+            <span className={`bar ${isMenuOpen ? 'active' : ''}`}></span>
+            <span className={`bar ${isMenuOpen ? 'active' : ''}`}></span>
+          </div>
+        </div>
       </div>
     </nav>
   );

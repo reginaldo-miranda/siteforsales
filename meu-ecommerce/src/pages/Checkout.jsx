@@ -1,44 +1,46 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
 
 const Checkout = () => {
   const navigate = useNavigate();
-  const [etapa, setEtapa] = useState(1); // 1: Identificação, 2: Endereço, 3: Pagamento, 4: Confirmação
   const [cartItems, setCartItems] = useState([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
   
-  // Estados para identificação
-  const [identificacao, setIdentificacao] = useState({ cpf: '', email: '' });
-  const [cliente, setCliente] = useState(null);
-  const [mostrarCadastro, setMostrarCadastro] = useState(false);
-  
-  // Estados para cadastro de cliente
+  // Estados para dados do cliente
   const [dadosCliente, setDadosCliente] = useState({
     nome: '',
     email: '',
-    cpf: '',
-    telefone: '',
-    dataNascimento: '',
-    endereco: {
-      cep: '',
-      logradouro: '',
-      numero: '',
-      complemento: '',
-      bairro: '',
-      cidade: '',
-      estado: ''
-    }
+    telefone1: '',
+    telefone2: '',
+    cpfCnpj: '',
+    rgInscricao: '',
+    tipoDocumento: 'cpf' // 'cpf' ou 'cnpj'
   });
   
-  // Estados para endereço e pagamento
-  const [enderecoSelecionado, setEnderecoSelecionado] = useState(null);
-  const [formaPagamento, setFormaPagamento] = useState({
-    tipo: '',
-    parcelas: 1
+  // Estados para dados de entrega
+  const [dadosEntrega, setDadosEntrega] = useState({
+    cep: '',
+    endereco: '',
+    numeroEndereco: '',
+    complemento: '',
+    bairro: '',
+    cidade: '',
+    estado: '',
+    codigoIbge: ''
   });
   
+  // Estado para forma de pagamento
+  const [formaPagamento, setFormaPagamento] = useState('');
+  
+  // Estados para dados do cartão
+  const [dadosCartao, setDadosCartao] = useState({
+    numero: '',
+    nome: '',
+    validade: '',
+    cvv: ''
+  });
+
   useEffect(() => {
     // Carregar itens do carrinho
     const savedCart = localStorage.getItem('cart');
@@ -46,143 +48,190 @@ const Checkout = () => {
       const parsedCart = JSON.parse(savedCart);
       setCartItems(parsedCart);
       
+      // Calcular o total
       const cartTotal = parsedCart.reduce(
         (sum, item) => sum + item.preco * item.quantidade, 
         0
       );
       setTotal(cartTotal);
     } else {
+      // Se não há itens no carrinho, redirecionar
       navigate('/carrinho');
     }
   }, [navigate]);
-  
-  const buscarCliente = async () => {
-    setLoading(true);
-    try {
-      const params = {};
-      if (identificacao.cpf) params.cpf = identificacao.cpf;
-      if (identificacao.email) params.email = identificacao.email;
-      
-      const response = await axios.get('http://localhost:3000/api/clientes/buscar', { params });
-      setCliente(response.data);
-      setEtapa(2);
-    } catch (error) {
-      if (error.response?.status === 404) {
-        setMostrarCadastro(true);
-        setDadosCliente(prev => ({
-          ...prev,
-          email: identificacao.email,
-          cpf: identificacao.cpf
-        }));
-      } else {
-        alert('Erro ao buscar cliente');
+
+  const handleClienteChange = (e) => {
+    setDadosCliente({
+      ...dadosCliente,
+      [e.target.name]: e.target.value
+    });
+  };
+
+  const handleEntregaChange = (e) => {
+    let value = e.target.value;
+    
+    // Formatação automática do CEP
+    if (e.target.name === 'cep') {
+      value = value.replace(/\D/g, ''); // Remove caracteres não numéricos
+      if (value.length <= 8) {
+        value = value.replace(/(\d{5})(\d)/, '$1-$2'); // Adiciona hífen
       }
     }
-    setLoading(false);
+    
+    setDadosEntrega({
+      ...dadosEntrega,
+      [e.target.name]: value
+    });
   };
-  
-  const cadastrarCliente = async () => {
-    setLoading(true);
-    try {
-      const clienteData = {
-        ...dadosCliente,
-        enderecos: [{
-          ...dadosCliente.endereco,
-          tipo: 'residencial',
-          principal: true
-        }]
-      };
-      
-      const response = await axios.post('http://localhost:3000/api/clientes', clienteData);
-      setCliente(response.data);
-      setMostrarCadastro(false);
-      setEtapa(2);
-    } catch (error) {
-      alert('Erro ao cadastrar cliente: ' + (error.response?.data?.error || error.message));
+
+  const handleCartaoChange = (e) => {
+    setDadosCartao({
+      ...dadosCartao,
+      [e.target.name]: e.target.value
+    });
+  };
+
+
+
+  const buscarCEP = async () => {
+    const cepLimpo = dadosEntrega.cep.replace(/\D/g, '');
+    
+    if (cepLimpo.length === 8) {
+      setLoading(true);
+      try {
+        const response = await fetch(`https://viacep.com.br/ws/${cepLimpo}/json/`);
+        const data = await response.json();
+        
+        if (!data.erro) {
+          setDadosEntrega({
+            ...dadosEntrega,
+            cep: cepLimpo,
+            endereco: data.logradouro || '',
+            bairro: data.bairro || '',
+            cidade: data.localidade || '',
+            estado: data.uf || '',
+            codigoIbge: data.ibge || ''
+          });
+        } else {
+          alert('CEP não encontrado. Verifique o número digitado.');
+        }
+      } catch (error) {
+        console.error('Erro ao buscar CEP:', error);
+        alert('Erro ao buscar CEP. Verifique sua conexão com a internet.');
+      } finally {
+        setLoading(false);
+      }
     }
-    setLoading(false);
   };
-  
-  const selecionarEndereco = (endereco) => {
-    setEnderecoSelecionado(endereco);
-    setEtapa(3);
+
+  const validarFormulario = () => {
+    // Validar dados do cliente
+    if (!dadosCliente.nome || !dadosCliente.email || !dadosCliente.telefone1 || !dadosCliente.cpfCnpj || !dadosCliente.rgInscricao) {
+      alert('Por favor, preencha todos os dados pessoais obrigatórios.');
+      return false;
+    }
+    
+    // Validar dados de entrega
+    if (!dadosEntrega.cep || !dadosEntrega.endereco || !dadosEntrega.numeroEndereco || 
+        !dadosEntrega.bairro || !dadosEntrega.cidade || !dadosEntrega.estado) {
+      alert('Por favor, preencha todos os dados de entrega.');
+      return false;
+    }
+    
+    // Validar forma de pagamento
+    if (!formaPagamento) {
+      alert('Por favor, selecione uma forma de pagamento.');
+      return false;
+    }
+    
+    // Validar dados do cartão se necessário
+    if ((formaPagamento === 'credito' || formaPagamento === 'debito') && 
+        (!dadosCartao.numero || !dadosCartao.nome || !dadosCartao.validade || !dadosCartao.cvv)) {
+      alert('Por favor, preencha todos os dados do cartão.');
+      return false;
+    }
+    
+    return true;
   };
-  
+
   const finalizarPedido = async () => {
+    if (!validarFormulario()) return;
+    
     setLoading(true);
+    
     try {
-      const pedidoData = {
-        cliente: cliente._id,
+      // Preparar dados do pedido
+      const dadosPedido = {
+        dadosCliente,
+        dadosEntrega,
         itens: cartItems.map(item => ({
-          produto: item._id,
-          quantidade: item.quantidade,
-          precoUnitario: item.preco,
-          subtotal: item.preco * item.quantidade
+          produtoId: item._id,
+          nome: item.nome,
+          preco: item.preco,
+          quantidade: item.quantidade
         })),
-        enderecoEntrega: enderecoSelecionado,
         formaPagamento,
-        subtotal: total,
-        frete: 0,
-        desconto: 0,
-        total: total
+        total
       };
       
-      const response = await axios.post('http://localhost:3000/api/pedidos', pedidoData);
+      // Enviar pedido para a API
+      const response = await fetch('http://localhost:3000/api/pedidos', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(dadosPedido)
+      });
       
-      // Limpar carrinho
-      localStorage.removeItem('cart');
+      const resultado = await response.json();
       
-      // Ir para página de sucesso
-      navigate('/pedido-confirmado', { state: { pedido: response.data } });
-    } catch (error) {
-      alert('Erro ao finalizar pedido: ' + (error.response?.data?.error || error.message));
-    }
-    setLoading(false);
-  };
-  
-  const buscarCEP = async (cep) => {
-    try {
-      const response = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
-      const data = await response.json();
-      
-      if (!data.erro) {
-        setDadosCliente(prev => ({
-          ...prev,
-          endereco: {
-            ...prev.endereco,
-            cep,
-            logradouro: data.logradouro,
-            bairro: data.bairro,
-            cidade: data.localidade,
-            estado: data.uf
-          }
-        }));
+      if (resultado.success) {
+        // Limpar carrinho
+        localStorage.removeItem('cart');
+        
+        // Atualizar contador do carrinho
+        if (window.updateCartDisplay) {
+          window.updateCartDisplay();
+        }
+        
+        const mensagemSucesso = `Pedido ${resultado.pedido.numeroPedido} realizado com sucesso!\n\n` +
+          `Você receberá um email de confirmação.` +
+          (resultado.whatsappEnviado ? '\n\nUma notificação também foi enviada via WhatsApp.' : '');
+        
+        alert(mensagemSucesso);
+        navigate('/');
+      } else {
+        throw new Error(resultado.message || 'Erro ao processar pedido');
       }
     } catch (error) {
-      console.error('Erro ao buscar CEP:', error);
+      console.error('Erro ao finalizar pedido:', error);
+      alert(`Erro ao processar pedido: ${error.message}. Tente novamente.`);
+    } finally {
+      setLoading(false);
     }
   };
-  
+
+  if (cartItems.length === 0) {
+    return (
+      <div className="checkout-container">
+        <h2>Carrinho Vazio</h2>
+        <p>Adicione produtos ao carrinho antes de finalizar a compra.</p>
+      </div>
+    );
+  }
+
   return (
     <div className="checkout-container">
       <h2>Finalizar Compra</h2>
       
-      {/* Indicador de etapas */}
-      <div className="checkout-steps">
-        <div className={`step ${etapa >= 1 ? 'active' : ''}`}>1. Identificação</div>
-        <div className={`step ${etapa >= 2 ? 'active' : ''}`}>2. Endereço</div>
-        <div className={`step ${etapa >= 3 ? 'active' : ''}`}>3. Pagamento</div>
-        <div className={`step ${etapa >= 4 ? 'active' : ''}`}>4. Confirmação</div>
-      </div>
-      
-      {/* Resumo do pedido */}
+      {/* Resumo do Pedido */}
       <div className="order-summary">
         <h3>Resumo do Pedido</h3>
         <div className="order-items">
           {cartItems.map(item => (
             <div key={item._id} className="order-item">
               <span>{item.nome}</span>
-              <span>{item.quantidade}x</span>
+              <span>Qtd: {item.quantidade}</span>
               <span>R$ {(item.preco * item.quantidade).toFixed(2)}</span>
             </div>
           ))}
@@ -191,378 +240,254 @@ const Checkout = () => {
           <strong>Total: R$ {total.toFixed(2)}</strong>
         </div>
       </div>
-      
-      {/* Etapa 1: Identificação */}
-      {etapa === 1 && (
-        <div className="checkout-step">
-          <h3>Identificação</h3>
-          <p>Informe seu CPF ou email para continuar:</p>
-          
-          <div className="form-group">
-            <label>CPF:</label>
+
+      {/* Dados do Cliente */}
+      <div className="checkout-section">
+        <h3>Dados Pessoais</h3>
+        <div className="form-grid">
+          <input
+            type="text"
+            name="nome"
+            placeholder="Nome completo"
+            value={dadosCliente.nome}
+            onChange={handleClienteChange}
+            required
+          />
+          <input
+            type="email"
+            name="email"
+            placeholder="Email"
+            value={dadosCliente.email}
+            onChange={handleClienteChange}
+            required
+          />
+          <input
+            type="tel"
+            name="telefone1"
+            placeholder="Telefone principal"
+            value={dadosCliente.telefone1}
+            onChange={handleClienteChange}
+            required
+          />
+          <input
+            type="tel"
+            name="telefone2"
+            placeholder="Telefone secundário (opcional)"
+            value={dadosCliente.telefone2}
+            onChange={handleClienteChange}
+          />
+          <div className="document-type-group">
+            <select
+              name="tipoDocumento"
+              value={dadosCliente.tipoDocumento}
+              onChange={handleClienteChange}
+              required
+            >
+              <option value="cpf">CPF</option>
+              <option value="cnpj">CNPJ</option>
+            </select>
             <input
               type="text"
-              value={identificacao.cpf}
-              onChange={(e) => setIdentificacao(prev => ({ ...prev, cpf: e.target.value }))}
-              placeholder="000.000.000-00"
+              name="cpfCnpj"
+              placeholder={dadosCliente.tipoDocumento === 'cpf' ? 'CPF' : 'CNPJ'}
+              value={dadosCliente.cpfCnpj}
+              onChange={handleClienteChange}
+              required
             />
           </div>
-          
-          <div className="form-group">
-            <label>ou Email:</label>
+          <input
+            type="text"
+            name="rgInscricao"
+            placeholder={dadosCliente.tipoDocumento === 'cpf' ? 'RG' : 'Inscrição Estadual'}
+            value={dadosCliente.rgInscricao}
+            onChange={handleClienteChange}
+            required
+          />
+        </div>
+      </div>
+
+      {/* Dados de Entrega */}
+      <div className="checkout-section">
+        <h3>Endereço de Entrega</h3>
+        <div className="form-grid">
+          <div className="cep-group">
             <input
-              type="email"
-              value={identificacao.email}
-              onChange={(e) => setIdentificacao(prev => ({ ...prev, email: e.target.value }))}
-              placeholder="seu@email.com"
+              type="text"
+              name="cep"
+              placeholder="CEP (ex: 12345-678)"
+              value={dadosEntrega.cep}
+              onChange={handleEntregaChange}
+              onBlur={buscarCEP}
+              maxLength="9"
+              required
             />
+            {loading && <span className="cep-loading">Buscando...</span>}
           </div>
-          
-          <button 
-            onClick={buscarCliente}
-            disabled={loading || (!identificacao.cpf && !identificacao.email)}
-            className="btn-primary"
-          >
-            {loading ? 'Buscando...' : 'Continuar'}
-          </button>
-          
-          {/* Formulário de cadastro */}
-          {mostrarCadastro && (
-            <div className="cadastro-cliente">
-              <h4>Cadastro de Cliente</h4>
-              <p>Cliente não encontrado. Preencha os dados abaixo:</p>
-              
-              <div className="form-row">
-                <div className="form-group">
-                  <label>Nome Completo *</label>
-                  <input
-                    type="text"
-                    value={dadosCliente.nome}
-                    onChange={(e) => setDadosCliente(prev => ({ ...prev, nome: e.target.value }))}
-                    required
-                  />
-                </div>
-                
-                <div className="form-group">
-                  <label>Telefone *</label>
-                  <input
-                    type="tel"
-                    value={dadosCliente.telefone}
-                    onChange={(e) => setDadosCliente(prev => ({ ...prev, telefone: e.target.value }))}
-                    required
-                  />
-                </div>
-              </div>
-              
-              <div className="form-group">
-                <label>Data de Nascimento</label>
-                <input
-                  type="date"
-                  value={dadosCliente.dataNascimento}
-                  onChange={(e) => setDadosCliente(prev => ({ ...prev, dataNascimento: e.target.value }))}
-                />
-              </div>
-              
-              <h5>Endereço</h5>
-              <div className="form-row">
-                <div className="form-group">
-                  <label>CEP *</label>
-                  <input
-                    type="text"
-                    value={dadosCliente.endereco.cep}
-                    onChange={(e) => {
-                      const cep = e.target.value;
-                      setDadosCliente(prev => ({ 
-                        ...prev, 
-                        endereco: { ...prev.endereco, cep } 
-                      }));
-                      if (cep.length === 8) {
-                        buscarCEP(cep);
-                      }
-                    }}
-                    required
-                  />
-                </div>
-                
-                <div className="form-group">
-                  <label>Número *</label>
-                  <input
-                    type="text"
-                    value={dadosCliente.endereco.numero}
-                    onChange={(e) => setDadosCliente(prev => ({ 
-                      ...prev, 
-                      endereco: { ...prev.endereco, numero: e.target.value } 
-                    }))}
-                    required
-                  />
-                </div>
-              </div>
-              
-              <div className="form-group">
-                <label>Logradouro *</label>
-                <input
-                  type="text"
-                  value={dadosCliente.endereco.logradouro}
-                  onChange={(e) => setDadosCliente(prev => ({ 
-                    ...prev, 
-                    endereco: { ...prev.endereco, logradouro: e.target.value } 
-                  }))}
-                  required
-                />
-              </div>
-              
-              <div className="form-group">
-                <label>Complemento</label>
-                <input
-                  type="text"
-                  value={dadosCliente.endereco.complemento}
-                  onChange={(e) => setDadosCliente(prev => ({ 
-                    ...prev, 
-                    endereco: { ...prev.endereco, complemento: e.target.value } 
-                  }))}
-                />
-              </div>
-              
-              <div className="form-row">
-                <div className="form-group">
-                  <label>Bairro *</label>
-                  <input
-                    type="text"
-                    value={dadosCliente.endereco.bairro}
-                    onChange={(e) => setDadosCliente(prev => ({ 
-                      ...prev, 
-                      endereco: { ...prev.endereco, bairro: e.target.value } 
-                    }))}
-                    required
-                  />
-                </div>
-                
-                <div className="form-group">
-                  <label>Cidade *</label>
-                  <input
-                    type="text"
-                    value={dadosCliente.endereco.cidade}
-                    onChange={(e) => setDadosCliente(prev => ({ 
-                      ...prev, 
-                      endereco: { ...prev.endereco, cidade: e.target.value } 
-                    }))}
-                    required
-                  />
-                </div>
-                
-                <div className="form-group">
-                  <label>Estado *</label>
-                  <input
-                    type="text"
-                    value={dadosCliente.endereco.estado}
-                    onChange={(e) => setDadosCliente(prev => ({ 
-                      ...prev, 
-                      endereco: { ...prev.endereco, estado: e.target.value } 
-                    }))}
-                    required
-                  />
-                </div>
-              </div>
-              
-              <button 
-                onClick={cadastrarCliente}
-                disabled={loading}
-                className="btn-primary"
-              >
-                {loading ? 'Cadastrando...' : 'Cadastrar e Continuar'}
-              </button>
-            </div>
-          )}
+          <input
+            type="text"
+            name="endereco"
+            placeholder="Endereço"
+            value={dadosEntrega.endereco}
+            onChange={handleEntregaChange}
+            required
+          />
+          <input
+            type="text"
+            name="numeroEndereco"
+            placeholder="Número"
+            value={dadosEntrega.numeroEndereco}
+            onChange={handleEntregaChange}
+            required
+          />
+          <input
+            type="text"
+            name="complemento"
+            placeholder="Complemento (opcional)"
+            value={dadosEntrega.complemento}
+            onChange={handleEntregaChange}
+          />
+          <input
+            type="text"
+            name="bairro"
+            placeholder="Bairro"
+            value={dadosEntrega.bairro}
+            onChange={handleEntregaChange}
+            required
+          />
+          <input
+            type="text"
+            name="cidade"
+            placeholder="Cidade"
+            value={dadosEntrega.cidade}
+            onChange={handleEntregaChange}
+            required
+          />
+          <input
+            type="text"
+            name="estado"
+            placeholder="Estado"
+            value={dadosEntrega.estado}
+            onChange={handleEntregaChange}
+            required
+          />
+          <input
+            type="text"
+            name="codigoIbge"
+            placeholder="Código IBGE"
+            value={dadosEntrega.codigoIbge}
+            onChange={handleEntregaChange}
+          />
         </div>
-      )}
-      
-      {/* Etapa 2: Endereço */}
-      {etapa === 2 && cliente && (
-        <div className="checkout-step">
-          <h3>Endereço de Entrega</h3>
-          <p>Olá, {cliente.nome}! Selecione o endereço de entrega:</p>
-          
-          <div className="enderecos-list">
-            {cliente.enderecos.map((endereco, index) => (
-              <div key={index} className="endereco-item">
-                <div className="endereco-info">
-                  <h4>{endereco.tipo} {endereco.principal && '(Principal)'}</h4>
-                  <p>
-                    {endereco.logradouro}, {endereco.numero}
-                    {endereco.complemento && `, ${endereco.complemento}`}
-                  </p>
-                  <p>{endereco.bairro} - {endereco.cidade}/{endereco.estado}</p>
-                  <p>CEP: {endereco.cep}</p>
-                </div>
-                <button 
-                  onClick={() => selecionarEndereco(endereco)}
-                  className="btn-primary"
-                >
-                  Entregar Aqui
-                </button>
-              </div>
-            ))}
-          </div>
-          
-          <button 
-            onClick={() => setEtapa(1)}
-            className="btn-secondary"
-          >
-            Voltar
-          </button>
+      </div>
+
+      {/* Forma de Pagamento */}
+      <div className="checkout-section">
+        <h3>Forma de Pagamento</h3>
+        <div className="payment-options">
+          <label>
+            <input
+              type="radio"
+              name="pagamento"
+              value="credito"
+              checked={formaPagamento === 'credito'}
+              onChange={(e) => setFormaPagamento(e.target.value)}
+            />
+            Cartão de Crédito
+          </label>
+          <label>
+            <input
+              type="radio"
+              name="pagamento"
+              value="debito"
+              checked={formaPagamento === 'debito'}
+              onChange={(e) => setFormaPagamento(e.target.value)}
+            />
+            Cartão de Débito
+          </label>
+          <label>
+            <input
+              type="radio"
+              name="pagamento"
+              value="pix"
+              checked={formaPagamento === 'pix'}
+              onChange={(e) => setFormaPagamento(e.target.value)}
+            />
+            PIX
+          </label>
+          <label>
+            <input
+              type="radio"
+              name="pagamento"
+              value="boleto"
+              checked={formaPagamento === 'boleto'}
+              onChange={(e) => setFormaPagamento(e.target.value)}
+            />
+            Boleto Bancário
+          </label>
         </div>
-      )}
-      
-      {/* Etapa 3: Pagamento */}
-      {etapa === 3 && (
-        <div className="checkout-step">
-          <h3>Forma de Pagamento</h3>
-          
-          <div className="endereco-confirmacao">
-            <h4>Endereço de Entrega:</h4>
-            <p>
-              {enderecoSelecionado.logradouro}, {enderecoSelecionado.numero}
-              {enderecoSelecionado.complemento && `, ${enderecoSelecionado.complemento}`}
-            </p>
-            <p>{enderecoSelecionado.bairro} - {enderecoSelecionado.cidade}/{enderecoSelecionado.estado}</p>
-          </div>
-          
-          <div className="formas-pagamento">
-            <div className="forma-pagamento">
-              <label>
-                <input
-                  type="radio"
-                  name="formaPagamento"
-                  value="pix"
-                  onChange={(e) => setFormaPagamento({ tipo: e.target.value, parcelas: 1 })}
-                />
-                PIX (5% de desconto)
-              </label>
-            </div>
-            
-            <div className="forma-pagamento">
-              <label>
-                <input
-                  type="radio"
-                  name="formaPagamento"
-                  value="cartao_debito"
-                  onChange={(e) => setFormaPagamento({ tipo: e.target.value, parcelas: 1 })}
-                />
-                Cartão de Débito
-              </label>
-            </div>
-            
-            <div className="forma-pagamento">
-              <label>
-                <input
-                  type="radio"
-                  name="formaPagamento"
-                  value="cartao_credito"
-                  onChange={(e) => setFormaPagamento({ tipo: e.target.value, parcelas: 1 })}
-                />
-                Cartão de Crédito
-              </label>
-              
-              {formaPagamento.tipo === 'cartao_credito' && (
-                <div className="parcelas">
-                  <label>Parcelas:</label>
-                  <select 
-                    value={formaPagamento.parcelas}
-                    onChange={(e) => setFormaPagamento(prev => ({ ...prev, parcelas: parseInt(e.target.value) }))}
-                  >
-                    {[1,2,3,4,5,6,7,8,9,10,11,12].map(num => (
-                      <option key={num} value={num}>
-                        {num}x de R$ {(total / num).toFixed(2)}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
-            </div>
-            
-            <div className="forma-pagamento">
-              <label>
-                <input
-                  type="radio"
-                  name="formaPagamento"
-                  value="boleto"
-                  onChange={(e) => setFormaPagamento({ tipo: e.target.value, parcelas: 1 })}
-                />
-                Boleto Bancário
-              </label>
+
+        {/* Dados do Cartão */}
+        {(formaPagamento === 'credito' || formaPagamento === 'debito') && (
+          <div className="card-details">
+            <h4>Dados do Cartão</h4>
+            <div className="form-grid">
+              <input
+                 type="text"
+                 name="numero"
+                placeholder="Número do Cartão"
+                value={dadosCartao.numero}
+                onChange={handleCartaoChange}
+                maxLength="19"
+                required
+              />
+              <input
+                type="text"
+                name="nome"
+                placeholder="Nome no Cartão"
+                value={dadosCartao.nome}
+                onChange={handleCartaoChange}
+                required
+              />
+              <input
+                type="text"
+                name="validade"
+                placeholder="MM/AA"
+                value={dadosCartao.validade}
+                onChange={handleCartaoChange}
+                maxLength="5"
+                required
+              />
+              <input
+                type="text"
+                name="cvv"
+                placeholder="CVV"
+                value={dadosCartao.cvv}
+                onChange={handleCartaoChange}
+                maxLength="4"
+                required
+              />
             </div>
           </div>
-          
-          <div className="checkout-actions">
-            <button 
-              onClick={() => setEtapa(2)}
-              className="btn-secondary"
-            >
-              Voltar
-            </button>
-            
-            <button 
-              onClick={() => setEtapa(4)}
-              disabled={!formaPagamento.tipo}
-              className="btn-primary"
-            >
-              Revisar Pedido
-            </button>
-          </div>
-        </div>
-      )}
-      
-      {/* Etapa 4: Confirmação */}
-      {etapa === 4 && (
-        <div className="checkout-step">
-          <h3>Confirmação do Pedido</h3>
-          
-          <div className="confirmacao-dados">
-            <div className="secao">
-              <h4>Cliente:</h4>
-              <p>{cliente.nome}</p>
-              <p>{cliente.email}</p>
-            </div>
-            
-            <div className="secao">
-              <h4>Endereço de Entrega:</h4>
-              <p>
-                {enderecoSelecionado.logradouro}, {enderecoSelecionado.numero}
-                {enderecoSelecionado.complemento && `, ${enderecoSelecionado.complemento}`}
-              </p>
-              <p>{enderecoSelecionado.bairro} - {enderecoSelecionado.cidade}/{enderecoSelecionado.estado}</p>
-              <p>CEP: {enderecoSelecionado.cep}</p>
-            </div>
-            
-            <div className="secao">
-              <h4>Forma de Pagamento:</h4>
-              <p>
-                {formaPagamento.tipo === 'pix' && 'PIX'}
-                {formaPagamento.tipo === 'cartao_debito' && 'Cartão de Débito'}
-                {formaPagamento.tipo === 'cartao_credito' && `Cartão de Crédito - ${formaPagamento.parcelas}x`}
-                {formaPagamento.tipo === 'boleto' && 'Boleto Bancário'}
-              </p>
-            </div>
-          </div>
-          
-          <div className="checkout-actions">
-            <button 
-              onClick={() => setEtapa(3)}
-              className="btn-secondary"
-            >
-              Voltar
-            </button>
-            
-            <button 
-              onClick={finalizarPedido}
-              disabled={loading}
-              className="btn-primary btn-finalizar"
-            >
-              {loading ? 'Finalizando...' : 'Finalizar Pedido'}
-            </button>
-          </div>
-        </div>
-      )}
+        )}
+
+      </div>
+
+      {/* Botões de Ação */}
+      <div className="checkout-actions">
+        <button 
+          onClick={() => navigate('/carrinho')} 
+          className="btn-secondary"
+        >
+          Voltar ao Carrinho
+        </button>
+        <button 
+          onClick={finalizarPedido} 
+          className="btn-primary"
+          disabled={loading}
+        >
+          {loading ? 'Processando...' : 'Finalizar Pedido'}
+        </button>
+      </div>
     </div>
   );
 };

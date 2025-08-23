@@ -1,6 +1,7 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
+const nodemailer = require('nodemailer');
 require('dotenv').config();
 
 const app = express();
@@ -14,6 +15,19 @@ app.use(express.json());
 mongoose.connect(process.env.MONGODB_URI)
   .then(async () => {
     console.log('Conectado ao MongoDB');
+    
+    // Remover índice antigo do campo 'numero' se existir
+    try {
+      await mongoose.connection.db.collection('pedidos').dropIndex('numero_1');
+      console.log('Índice antigo "numero_1" removido com sucesso');
+    } catch (error) {
+      if (error.code === 27) {
+        console.log('Índice "numero_1" não existe (já foi removido)');
+      } else {
+        console.log('Erro ao remover índice:', error.message);
+      }
+    }
+    
     await criarDadosIniciais();
   })
   .catch(err => console.error('Erro ao conectar ao MongoDB:', err));
@@ -73,93 +87,41 @@ const Modelo = mongoose.model('Modelo', modeloSchema);
 const Marca = mongoose.model('Marca', marcaSchema);
 const Produto = mongoose.model('Produto', produtoSchema);
 
-// Schema para Cliente
-const clienteSchema = new mongoose.Schema({
-  nome: { type: String, required: true },
-  email: { type: String, required: true, unique: true },
-  cpf: { type: String, required: true, unique: true },
-  telefone: { type: String, required: true },
-  dataNascimento: { type: Date },
-  pontosFidelidade: { type: Number, default: 0 },
-  enderecos: [{
-    tipo: { type: String, enum: ['residencial', 'comercial', 'outro'], default: 'residencial' },
+// Schema de Pedido
+const pedidoSchema = new mongoose.Schema({
+  numeroPedido: { type: String, required: true, unique: true },
+  dadosCliente: {
+    nome: { type: String, required: true },
+    email: { type: String, required: true },
+    telefone1: { type: String, required: true },
+    telefone2: { type: String },
+    cpfCnpj: { type: String, required: true },
+    rgInscricao: { type: String, required: true },
+    tipoDocumento: { type: String, required: true }
+  },
+  dadosEntrega: {
     cep: { type: String, required: true },
-    logradouro: { type: String, required: true },
-    numero: { type: String, required: true },
+    endereco: { type: String, required: true },
+    numeroEndereco: { type: String, required: true }, // Renomeado para evitar conflito
     complemento: { type: String },
     bairro: { type: String, required: true },
     cidade: { type: String, required: true },
     estado: { type: String, required: true },
-    principal: { type: Boolean, default: false }
-  }],
-  ativo: { type: Boolean, default: true },
-  dataCadastro: { type: Date, default: Date.now }
-});
-
-// Schema para Usuário Administrativo
-const usuarioSchema = new mongoose.Schema({
-  nome: { type: String, required: true },
-  email: { type: String, required: true, unique: true },
-  senha: { type: String, required: true },
-  tipo: { type: String, enum: ['admin', 'vendedor', 'estoque'], required: true },
-  permissoes: {
-    produtos: { type: Boolean, default: false },
-    clientes: { type: Boolean, default: false },
-    pedidos: { type: Boolean, default: false },
-    usuarios: { type: Boolean, default: false },
-    relatorios: { type: Boolean, default: false }
+    codigoIbge: { type: String }
   },
-  ativo: { type: Boolean, default: true },
-  dataCadastro: { type: Date, default: Date.now }
-});
-
-// Schema para Pedido
-const pedidoSchema = new mongoose.Schema({
-  numero: { type: String, unique: true, required: true },
-  cliente: { type: mongoose.Schema.Types.ObjectId, ref: 'Cliente', required: true },
   itens: [{
-    produto: { type: mongoose.Schema.Types.ObjectId, ref: 'Produto', required: true },
-    quantidade: { type: Number, required: true },
-    precoUnitario: { type: Number, required: true },
-    subtotal: { type: Number, required: true }
+    produtoId: { type: mongoose.Schema.Types.ObjectId, ref: 'Produto', required: true },
+    nome: { type: String, required: true },
+    preco: { type: Number, required: true },
+    quantidade: { type: Number, required: true }
   }],
-  enderecoEntrega: {
-    cep: { type: String, required: true },
-    logradouro: { type: String, required: true },
-    numero: { type: String, required: true },
-    complemento: { type: String },
-    bairro: { type: String, required: true },
-    cidade: { type: String, required: true },
-    estado: { type: String, required: true }
-  },
-  formaPagamento: {
-    tipo: { type: String, enum: ['cartao_credito', 'cartao_debito', 'pix', 'boleto'], required: true },
-    parcelas: { type: Number, default: 1 },
-    valorParcela: { type: Number }
-  },
-  subtotal: { type: Number, required: true },
-  frete: { type: Number, default: 0 },
-  desconto: { type: Number, default: 0 },
+  formaPagamento: { type: String, required: true },
   total: { type: Number, required: true },
-  status: { 
-    type: String, 
-    enum: ['pendente', 'confirmado', 'preparando', 'enviado', 'entregue', 'cancelado'], 
-    default: 'pendente' 
-  },
-  notaFiscal: {
-    numero: { type: String },
-    chave: { type: String },
-    xml: { type: String },
-    pdf: { type: String },
-    dataEmissao: { type: Date }
-  },
-  dataPedido: { type: Date, default: Date.now },
-  dataAtualizacao: { type: Date, default: Date.now }
+  status: { type: String, default: 'pendente' },
+  dataCriacao: { type: Date, default: Date.now },
+  whatsappEnviado: { type: Boolean, default: false }
 });
 
-// Modelos adicionais
-const Cliente = mongoose.model('Cliente', clienteSchema);
-const Usuario = mongoose.model('Usuario', usuarioSchema);
 const Pedido = mongoose.model('Pedido', pedidoSchema);
 
 // Função para criar dados iniciais das opções
@@ -243,26 +205,6 @@ async function criarDadosIniciais() {
   try {
     await criarOpcoes();
     
-    // Criar usuário administrador padrão
-    const adminCount = await Usuario.countDocuments({ tipo: 'admin' });
-    if (adminCount === 0) {
-      const adminUser = new Usuario({
-        nome: 'Administrador',
-        email: 'admin@ecommerce.com',
-        senha: 'admin123',
-        tipo: 'admin',
-        permissoes: {
-          produtos: true,
-          clientes: true,
-          pedidos: true,
-          usuarios: true,
-          relatorios: true
-        }
-      });
-      await adminUser.save();
-      console.log('Usuário administrador criado: admin@ecommerce.com / admin123');
-    }
-    
     const count = await Produto.countDocuments();
     if (count === 0) {
       const produtosIniciais = [
@@ -270,14 +212,14 @@ async function criarDadosIniciais() {
           nome: "Smartphone Samsung Galaxy",
           descricao: "Smartphone com tela de 6.1 polegadas, 128GB de armazenamento",
           preco: 899.99,
-          imagem: "https://br.freepik.com/fotos-vetores-gratis/smartphone",
+          imagem: "https://via.placeholder.com/300x300?text=Samsung+Galaxy",
           estoque: 15
         },
         {
           nome: "Notebook Dell Inspiron",
           descricao: "Notebook com processador Intel i5, 8GB RAM, 256GB SSD",
           preco: 2499.99,
-          imagem: "https://www.dell.com/pt-br/shop/notebooks-dell/notebook-inspiron-15/spd/inspiron-15-3520-laptop",
+          imagem: "https://via.placeholder.com/300x300?text=Dell+Inspiron",
           estoque: 8
         },
         {
@@ -642,283 +584,234 @@ app.put('/api/produtos/:id', async (req, res) => {
 
 app.delete('/api/produtos/:id', async (req, res) => {
   try {
-    await Produto.findByIdAndDelete(req.params.id);
-    res.json({ message: 'Produto excluído com sucesso' });
+    const produto = await Produto.findByIdAndDelete(req.params.id);
+    if (!produto) return res.status(404).json({ message: 'Produto não encontrado' });
+    res.json({ message: 'Produto removido com sucesso' });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ message: error.message });
   }
 });
 
-// ===== ROTAS DE AUTENTICAÇÃO =====
+// Função para gerar número do pedido
+function gerarNumeroPedido() {
+  const timestamp = Date.now().toString();
+  const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+  return `PED${timestamp.slice(-6)}${random}`;
+}
 
-// Login de usuário administrativo
-app.post('/api/auth/login', async (req, res) => {
+// Configurar transporter do Nodemailer
+const transporter = nodemailer.createTransport({
+  host: process.env.EMAIL_HOST,
+  port: process.env.EMAIL_PORT,
+  secure: false, // true para 465, false para outras portas
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS
+  }
+});
+
+// Função para enviar email de confirmação
+async function enviarEmailConfirmacao(pedido) {
   try {
-    const { email, senha } = req.body;
-    const usuario = await Usuario.findOne({ email, ativo: true });
+    // Verificar se as credenciais de email estão configuradas
+    if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+      console.log('⚠️ Credenciais de email não configuradas. Simulando envio...');
+      console.log('✅ Email de confirmação simulado com sucesso!');
+      return true;
+    }
+
+    const htmlTemplate = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <title>Confirmação de Pedido</title>
+        <style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { background-color: #007bff; color: white; padding: 20px; text-align: center; }
+          .content { padding: 20px; background-color: #f9f9f9; }
+          .order-details { background-color: white; padding: 15px; margin: 10px 0; border-radius: 5px; }
+          .item { border-bottom: 1px solid #eee; padding: 10px 0; }
+          .total { font-weight: bold; font-size: 1.2em; color: #007bff; }
+          .footer { text-align: center; padding: 20px; color: #666; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>Pedido Confirmado!</h1>
+            <p>Número do Pedido: <strong>${pedido.numeroPedido}</strong></p>
+          </div>
+          
+          <div class="content">
+            <h2>Olá, ${pedido.dadosCliente.nome}!</h2>
+            <p>Seu pedido foi recebido e está sendo processado. Abaixo estão os detalhes:</p>
+            
+            <div class="order-details">
+              <h3>📍 Dados de Entrega</h3>
+              <p><strong>Endereço:</strong> ${pedido.dadosEntrega.endereco}, ${pedido.dadosEntrega.numeroEndereco}</p>
+              <p><strong>Bairro:</strong> ${pedido.dadosEntrega.bairro}</p>
+              <p><strong>Cidade:</strong> ${pedido.dadosEntrega.cidade} - ${pedido.dadosEntrega.estado}</p>
+              <p><strong>CEP:</strong> ${pedido.dadosEntrega.cep}</p>
+            </div>
+            
+            <div class="order-details">
+              <h3>🛍️ Itens do Pedido</h3>
+              ${pedido.itens.map(item => `
+                <div class="item">
+                  <strong>${item.nome}</strong><br>
+                  Quantidade: ${item.quantidade} | Preço unitário: R$ ${item.preco.toFixed(2)}
+                </div>
+              `).join('')}
+            </div>
+            
+            <div class="order-details">
+              <p><strong>💳 Forma de Pagamento:</strong> ${pedido.formaPagamento}</p>
+              <p class="total">💰 Total: R$ ${pedido.total.toFixed(2)}</p>
+              <p><strong>📅 Data do Pedido:</strong> ${new Date(pedido.dataCriacao).toLocaleString('pt-BR')}</p>
+            </div>
+          </div>
+          
+          <div class="footer">
+            <p>Obrigado por escolher nossa loja!</p>
+            <p>Em caso de dúvidas, entre em contato conosco.</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+
+    const mailOptions = {
+      from: `"${process.env.EMAIL_FROM_NAME}" <${process.env.EMAIL_FROM_ADDRESS}>`,
+      to: pedido.dadosCliente.email,
+      subject: `Confirmação de Pedido #${pedido.numeroPedido} - ${process.env.EMAIL_FROM_NAME}`,
+      html: htmlTemplate
+    };
+
+    await transporter.sendMail(mailOptions);
+    console.log('✅ Email de confirmação enviado com sucesso!');
+    return true;
+  } catch (error) {
+    console.error('❌ Erro ao enviar email de confirmação:', error);
+    return false;
+  }
+}
+
+// Função para enviar notificação via WhatsApp
+async function enviarNotificacaoWhatsApp(pedido) {
+  try {
+    const mensagem = `🛒 *Novo Pedido Recebido!*\n\n` +
+      `📋 *Pedido:* ${pedido.numeroPedido}\n` +
+      `👤 *Cliente:* ${pedido.dadosCliente.nome}\n` +
+      `📱 *Telefone:* ${pedido.dadosCliente.telefone1}\n` +
+      `📧 *Email:* ${pedido.dadosCliente.email}\n` +
+      `💰 *Total:* R$ ${pedido.total.toFixed(2)}\n` +
+      `🏠 *Endereço:* ${pedido.dadosEntrega.endereco}, ${pedido.dadosEntrega.numeroEndereco} - ${pedido.dadosEntrega.bairro}, ${pedido.dadosEntrega.cidade}/${pedido.dadosEntrega.estado}\n` +
+      `💳 *Pagamento:* ${pedido.formaPagamento}\n\n` +
+      `📦 *Itens do Pedido:*\n` +
+      pedido.itens.map(item => 
+        `• ${item.nome} - Qtd: ${item.quantidade} - R$ ${(item.preco * item.quantidade).toFixed(2)}`
+      ).join('\n');
     
-    if (!usuario || usuario.senha !== senha) {
-      return res.status(401).json({ error: 'Credenciais inválidas' });
+    console.log('Mensagem WhatsApp preparada:', mensagem);
+    
+    // Verificar se as credenciais do Twilio estão configuradas
+    if (process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN && 
+        process.env.TWILIO_ACCOUNT_SID !== 'your_twilio_account_sid_here') {
+      
+      // Integração real com Twilio WhatsApp
+      const client = require('twilio')(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
+      
+      await client.messages.create({
+        from: process.env.TWILIO_WHATSAPP_FROM || 'whatsapp:+14155238886',
+        to: process.env.TWILIO_WHATSAPP_TO || 'whatsapp:+5511999999999',
+        body: mensagem
+      });
+      
+      console.log('✅ Notificação WhatsApp enviada via Twilio!');
+    } else {
+      // Modo de desenvolvimento - apenas simular o envio
+      console.log('⚠️ Credenciais do Twilio não configuradas. Simulando envio...');
+      console.log('✅ Notificação WhatsApp simulada com sucesso!');
     }
     
-    res.json({
-      id: usuario._id,
-      nome: usuario.nome,
-      email: usuario.email,
-      tipo: usuario.tipo,
-      permissoes: usuario.permissoes
-    });
+    return true;
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error('❌ Erro ao enviar notificação WhatsApp:', error);
+    return false;
   }
-});
+}
 
-// ===== ROTAS DE CLIENTES =====
-
-// Buscar cliente por CPF ou email
-app.get('/api/clientes/buscar', async (req, res) => {
-  try {
-    const { cpf, email } = req.query;
-    let cliente;
-    
-    if (cpf) {
-      cliente = await Cliente.findOne({ cpf, ativo: true });
-    } else if (email) {
-      cliente = await Cliente.findOne({ email, ativo: true });
-    }
-    
-    if (!cliente) {
-      return res.status(404).json({ error: 'Cliente não encontrado' });
-    }
-    
-    res.json(cliente);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// Criar novo cliente
-app.post('/api/clientes', async (req, res) => {
-  try {
-    const cliente = new Cliente(req.body);
-    await cliente.save();
-    res.status(201).json(cliente);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// Listar todos os clientes
-app.get('/api/clientes', async (req, res) => {
-  try {
-    const clientes = await Cliente.find({ ativo: true });
-    res.json(clientes);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// Buscar cliente por ID
-app.get('/api/clientes/:id', async (req, res) => {
-  try {
-    const cliente = await Cliente.findById(req.params.id);
-    if (!cliente) return res.status(404).json({ message: 'Cliente não encontrado' });
-    res.json(cliente);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// Atualizar cliente
-app.put('/api/clientes/:id', async (req, res) => {
-  try {
-    const cliente = await Cliente.findByIdAndUpdate(req.params.id, req.body, { new: true });
-    res.json(cliente);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// Excluir cliente (desativar)
-app.delete('/api/clientes/:id', async (req, res) => {
-  try {
-    const cliente = await Cliente.findByIdAndUpdate(req.params.id, { ativo: false }, { new: true });
-    if (!cliente) return res.status(404).json({ message: 'Cliente não encontrado' });
-    res.json({ message: 'Cliente desativado com sucesso' });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// ===== ROTAS DE PEDIDOS =====
-
-// Criar novo pedido
+// Endpoint para criar pedido
 app.post('/api/pedidos', async (req, res) => {
   try {
+    const { dadosCliente, dadosEntrega, itens, formaPagamento, total } = req.body;
+    
     // Gerar número do pedido
-    const ultimoPedido = await Pedido.findOne().sort({ dataPedido: -1 });
-    const numeroSequencial = ultimoPedido ? parseInt(ultimoPedido.numero) + 1 : 1;
-    const numeroPedido = numeroSequencial.toString().padStart(6, '0');
+    const numeroPedido = gerarNumeroPedido();
     
-    const pedidoData = {
-      ...req.body,
-      numero: numeroPedido
-    };
+    // Criar o pedido
+    const novoPedido = new Pedido({
+      numeroPedido,
+      dadosCliente,
+      dadosEntrega,
+      itens,
+      formaPagamento,
+      total
+    });
     
-    const pedido = new Pedido(pedidoData);
-    await pedido.save();
+    // Salvar o pedido
+    const pedidoSalvo = await novoPedido.save();
     
-    // Popular os dados do cliente e produtos
-    await pedido.populate('cliente');
-    await pedido.populate('itens.produto');
+    // Enviar email de confirmação para o cliente
+    const emailEnviado = await enviarEmailConfirmacao(pedidoSalvo);
     
-    res.status(201).json(pedido);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// Listar pedidos
-app.get('/api/pedidos', async (req, res) => {
-  try {
-    const { status, cliente } = req.query;
-    let filtro = {};
+    // Enviar notificação via WhatsApp
+    const whatsappEnviado = await enviarNotificacaoWhatsApp(pedidoSalvo);
     
-    if (status) filtro.status = status;
-    if (cliente) filtro.cliente = cliente;
-    
-    const pedidos = await Pedido.find(filtro)
-      .populate('cliente')
-      .populate('itens.produto')
-      .sort({ dataPedido: -1 });
-    
-    res.json(pedidos);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// Buscar pedido por ID
-app.get('/api/pedidos/:id', async (req, res) => {
-  try {
-    const pedido = await Pedido.findById(req.params.id)
-      .populate('cliente')
-      .populate('itens.produto');
-    
-    if (!pedido) {
-      return res.status(404).json({ error: 'Pedido não encontrado' });
+    // Atualizar status do WhatsApp
+    if (whatsappEnviado) {
+      pedidoSalvo.whatsappEnviado = true;
+      await pedidoSalvo.save();
     }
     
+    res.status(201).json({
+      success: true,
+      pedido: pedidoSalvo,
+      emailEnviado,
+      whatsappEnviado
+    });
+  } catch (error) {
+    console.error('Erro ao criar pedido:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Erro ao processar pedido',
+      error: error.message 
+    });
+  }
+});
+
+// Endpoint para listar pedidos
+app.get('/api/pedidos', async (req, res) => {
+  try {
+    const pedidos = await Pedido.find().sort({ dataCriacao: -1 });
+    res.json(pedidos);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Endpoint para buscar pedido por ID
+app.get('/api/pedidos/:id', async (req, res) => {
+  try {
+    const pedido = await Pedido.findById(req.params.id);
+    if (!pedido) {
+      return res.status(404).json({ message: 'Pedido não encontrado' });
+    }
     res.json(pedido);
   } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// Atualizar status do pedido
-app.put('/api/pedidos/:id/status', async (req, res) => {
-  try {
-    const { status } = req.body;
-    const pedido = await Pedido.findByIdAndUpdate(
-      req.params.id,
-      { status, dataAtualizacao: new Date() },
-      { new: true }
-    ).populate('cliente').populate('itens.produto');
-    
-    res.json(pedido);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// Atualizar pedido completo
-app.put('/api/pedidos/:id', async (req, res) => {
-  try {
-    const pedido = await Pedido.findByIdAndUpdate(
-      req.params.id,
-      { ...req.body, dataAtualizacao: new Date() },
-      { new: true }
-    ).populate('cliente').populate('itens.produto');
-    
-    if (!pedido) return res.status(404).json({ message: 'Pedido não encontrado' });
-    res.json(pedido);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// Excluir pedido
-app.delete('/api/pedidos/:id', async (req, res) => {
-  try {
-    const pedido = await Pedido.findByIdAndDelete(req.params.id);
-    if (!pedido) return res.status(404).json({ message: 'Pedido não encontrado' });
-    res.json({ message: 'Pedido excluído com sucesso' });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// ===== ROTAS DE USUÁRIOS ADMINISTRATIVOS =====
-
-// Listar usuários (apenas para admins)
-app.get('/api/usuarios', async (req, res) => {
-  try {
-    const usuarios = await Usuario.find({ ativo: true }).select('-senha');
-    res.json(usuarios);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// Buscar usuário por ID
-app.get('/api/usuarios/:id', async (req, res) => {
-  try {
-    const usuario = await Usuario.findById(req.params.id).select('-senha');
-    if (!usuario) return res.status(404).json({ message: 'Usuário não encontrado' });
-    res.json(usuario);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// Criar novo usuário (apenas para admins)
-app.post('/api/usuarios', async (req, res) => {
-  try {
-    const usuario = new Usuario(req.body);
-    await usuario.save();
-    
-    // Retornar sem a senha
-    const { senha, ...usuarioSemSenha } = usuario.toObject();
-    res.status(201).json(usuarioSemSenha);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// Atualizar usuário
-app.put('/api/usuarios/:id', async (req, res) => {
-  try {
-    const usuario = await Usuario.findByIdAndUpdate(
-      req.params.id,
-      req.body,
-      { new: true }
-    ).select('-senha');
-    
-    if (!usuario) return res.status(404).json({ message: 'Usuário não encontrado' });
-    res.json(usuario);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// Desativar usuário
-app.delete('/api/usuarios/:id', async (req, res) => {
-  try {
-    const usuario = await Usuario.findByIdAndUpdate(req.params.id, { ativo: false }, { new: true });
-    if (!usuario) return res.status(404).json({ message: 'Usuário não encontrado' });
-    res.json({ message: 'Usuário desativado com sucesso' });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ message: error.message });
   }
 });
 

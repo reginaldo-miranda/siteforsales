@@ -74,6 +74,5 @@ Para implantar esta API na Vercel:
    ```
    vercel env add MONGODB_URI
    ```
-
-   .env  
-MONGODB_URI="mongodb+srv://reginaldo:novasenha@cluster0.5pluavy.mongodb.net/siteeco?retryWrites=true&w=majority&appName=Cluster0"
+```
+       

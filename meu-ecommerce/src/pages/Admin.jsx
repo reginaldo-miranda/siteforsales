@@ -76,14 +76,7 @@ const Admin = () => {
 
   return (
     <div className="admin-container">
-      <div className="admin-header">
-        <h1>Administração de Opções</h1>
-        <div className="admin-actions">
-          <Link to="/admin-dashboard" className="btn btn-secondary">
-            Voltar ao Dashboard
-          </Link>
-        </div>
-      </div>
+      <h1>Administração de Opções</h1>
       
       <div className="admin-form">
         <h2>Adicionar Nova Opção</h2>

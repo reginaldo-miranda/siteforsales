@@ -1,0 +1,147 @@
+.side-menu {
+  position: fixed;
+  right: 0;
+  top: 0;
+  height: 100vh;
+  width: 0;
+  background-color: #4a90e2;
+  color: white;
+  transition: all 0.3s ease;
+  z-index: 1001;
+  overflow: hidden;
+  box-shadow: -2px 0 5px rgba(0, 0, 0, 0.2);
+  display: flex;
+  flex-direction: column;
+}
+
+.side-menu.open {
+  width: 250px;
+  overflow-y: auto;
+}
+
+.menu-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.close-button {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 24px;
+  cursor: pointer;
+  padding: 5px 10px;
+}
+
+.menu-content {
+  padding: 0;
+  width: 100%;
+}
+
+.menu-content h3 {
+  margin-bottom: 20px;
+  font-size: 18px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  border-bottom: 1px solid #555;
+  padding-bottom: 10px;
+}
+
+.menu-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.menu-item {
+  margin: 0;
+}
+
+.menu-link {
+  color: white;
+  text-decoration: none;
+  display: block;
+  padding: 12px 15px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  transition: background-color 0.2s;
+  background: none;
+  border: none;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  font-size: inherit;
+  font-family: inherit;
+}
+
+.menu-link:hover {
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
+.menu-link i {
+  margin-right: 10px;
+  width: 20px;
+  text-align: center;
+}
+
+/* Estilos para submenus */
+.menu-item-with-submenu {
+  position: relative;
+}
+
+.submenu-toggle {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.submenu-toggle i {
+  margin-right: 0;
+  margin-left: 10px;
+  transition: transform 0.3s ease;
+}
+
+.submenu {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease;
+  background-color: rgba(0, 0, 0, 0.2);
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.submenu.expanded {
+  max-height: 400px;
+}
+
+.submenu-item {
+  margin: 0;
+}
+
+.submenu-link {
+  color: rgba(255, 255, 255, 0.9);
+  text-decoration: none;
+  display: block;
+  padding: 10px 30px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  transition: background-color 0.2s;
+  font-size: 0.9rem;
+}
+
+.submenu-link:hover {
+  background-color: rgba(255, 255, 255, 0.15);
+  color: white;
+}
+
+/* Ajuste para o conteúdo principal */
+.content {
+  margin-left: 60px;
+  transition: margin-left 0.3s ease;
+}
+
+.side-menu.open + .content {
+  margin-left: 250px;
+}

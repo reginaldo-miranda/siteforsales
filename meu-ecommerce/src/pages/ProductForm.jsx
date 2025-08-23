@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useParams, Link } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import axios from 'axios';
 
 const ProductForm = () => {
@@ -113,7 +113,7 @@ const ProductForm = () => {
         alert('Produto cadastrado com sucesso!');
       }
       
-      navigate('/admin/produtos');
+      navigate('/produtos');
     } catch (err) {
       console.error('Erro ao salvar produto:', err);
       alert('Erro ao salvar produto. Verifique os dados e tente novamente.');
@@ -127,14 +127,7 @@ const ProductForm = () => {
 
   return (
     <div className="product-form-container">
-      <div className="admin-header">
-        <h1>{isEdit ? 'Editar Produto' : 'Cadastrar Produto'}</h1>
-        <div className="admin-actions">
-          <Link to="/admin/produtos" className="btn btn-secondary">
-            Voltar aos Produtos
-          </Link>
-        </div>
-      </div>
+      <h1>{isEdit ? 'Editar Produto' : 'Cadastrar Produto'}</h1>
       
       <form onSubmit={handleSubmit} className="product-form">
         <div className="form-row">
@@ -304,7 +297,7 @@ const ProductForm = () => {
         <div className="form-actions">
           <button 
             type="button" 
-            onClick={() => navigate('/admin/produtos')}
+            onClick={() => navigate('/produtos')}
             className="btn-secondary"
           >
             Cancelar
