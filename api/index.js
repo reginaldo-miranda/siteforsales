@@ -63,6 +63,25 @@ const marcaSchema = new mongoose.Schema({
   ativo: { type: Boolean, default: true }
 });
 
+// Schema de Fornecedor
+const fornecedorSchema = new mongoose.Schema({
+  codigo: { type: String, required: true, unique: true },
+  razaoSocial: { type: String, required: true },
+  rua: { type: String, required: true },
+  bairro: { type: String, required: true },
+  cep: { type: String, required: true },
+  cidade: { type: String, required: true },
+  estado: { type: String, required: true },
+  cnpj: { type: String, required: true, unique: true },
+  inscricao: { type: String },
+  telefone1: { type: String, required: true },
+  telefone2: { type: String },
+  atividade: { type: String, required: true },
+  atendente: { type: String, required: true },
+  ativo: { type: Boolean, default: true },
+  dataCriacao: { type: Date, default: Date.now }
+});
+
 // Definição do Schema de Produto atualizado
 const produtoSchema = new mongoose.Schema({
   nome: { type: String, required: true },
@@ -85,6 +104,7 @@ const Idade = mongoose.model('Idade', idadeSchema);
 const Sexo = mongoose.model('Sexo', sexoSchema);
 const Modelo = mongoose.model('Modelo', modeloSchema);
 const Marca = mongoose.model('Marca', marcaSchema);
+const Fornecedor = mongoose.model('Fornecedor', fornecedorSchema);
 const Produto = mongoose.model('Produto', produtoSchema);
 
 // Schema de Pedido
@@ -490,6 +510,56 @@ app.delete('/api/marcas/:id', async (req, res) => {
     const marca = await Marca.findByIdAndUpdate(req.params.id, { ativo: false }, { new: true });
     if (!marca) return res.status(404).json({ message: 'Marca não encontrada' });
     res.json({ message: 'Marca desativada com sucesso' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Rotas para Fornecedores
+app.get('/api/fornecedores', async (req, res) => {
+  try {
+    const fornecedores = await Fornecedor.find({ ativo: true }).sort({ razaoSocial: 1 });
+    res.json(fornecedores);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+app.post('/api/fornecedores', async (req, res) => {
+  try {
+    const fornecedor = new Fornecedor(req.body);
+    const fornecedorSalvo = await fornecedor.save();
+    res.status(201).json(fornecedorSalvo);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+});
+
+app.get('/api/fornecedores/:id', async (req, res) => {
+  try {
+    const fornecedor = await Fornecedor.findById(req.params.id);
+    if (!fornecedor) return res.status(404).json({ message: 'Fornecedor não encontrado' });
+    res.json(fornecedor);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+app.put('/api/fornecedores/:id', async (req, res) => {
+  try {
+    const fornecedor = await Fornecedor.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    if (!fornecedor) return res.status(404).json({ message: 'Fornecedor não encontrado' });
+    res.json(fornecedor);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+});
+
+app.delete('/api/fornecedores/:id', async (req, res) => {
+  try {
+    const fornecedor = await Fornecedor.findByIdAndUpdate(req.params.id, { ativo: false }, { new: true });
+    if (!fornecedor) return res.status(404).json({ message: 'Fornecedor não encontrado' });
+    res.json({ message: 'Fornecedor desativado com sucesso' });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

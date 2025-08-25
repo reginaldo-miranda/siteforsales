@@ -96,10 +96,5 @@ Este repositório contém duas partes principais:
 
 ## Licença
 
-MIT
 
-senha mongo acvZDitEaKW4AEyT
 
-5UWJHTYC1TEDPCDT6ZXFJVU6 CODIGO TWILIO
-
-US40ac47caeb49cb0fbb667f1b21a753be id usuario

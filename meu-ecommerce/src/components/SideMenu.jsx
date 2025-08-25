@@ -18,6 +18,11 @@ const SideMenu = ({ isOpen, setIsOpen }) => {
     { nome: 'Cadastro Auxiliar', path: '/admin' }
   ];
 
+  const subMenuFornecedores = [
+    { nome: 'Listar Fornecedores', path: '/fornecedores' },
+    { nome: 'Cadastrar Fornecedor', path: '/fornecedores/novo' }
+  ];
+
   return (
     <div className={`side-menu ${isOpen ? 'open' : ''}`}>
       <div className="menu-content" style={{display: isOpen ? 'block' : 'none'}}>
@@ -42,6 +47,26 @@ const SideMenu = ({ isOpen, setIsOpen }) => {
               </button>
               <ul className={`submenu ${expandedMenus.produtos ? 'expanded' : ''}`}>
                  {subMenuProdutos.map((item, index) => (
+                   <li key={index} className="submenu-item">
+                     <Link to={item.path} className="submenu-link" onClick={() => setIsOpen(false)}>
+                       {item.nome}
+                     </Link>
+                   </li>
+                 ))}
+               </ul>
+            </div>
+          </li>
+          <li className="menu-item">
+            <div className="menu-item-with-submenu">
+              <button 
+                className="menu-link submenu-toggle" 
+                onClick={() => toggleSubmenu('fornecedores')}
+              >
+                <span>Fornecedores</span>
+                <i className={`fas fa-chevron-${expandedMenus.fornecedores ? 'up' : 'down'}`}></i>
+              </button>
+              <ul className={`submenu ${expandedMenus.fornecedores ? 'expanded' : ''}`}>
+                 {subMenuFornecedores.map((item, index) => (
                    <li key={index} className="submenu-item">
                      <Link to={item.path} className="submenu-link" onClick={() => setIsOpen(false)}>
                        {item.nome}

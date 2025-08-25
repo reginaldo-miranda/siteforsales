@@ -113,6 +113,7 @@ const ProductList = () => {
     setFilteredProdutos(filtered);
   }, [produtos, selectedCategory, searchTerm]);
 
+  // eslint-disable-next-line no-unused-vars
   const addToCart = (produto) => {
     const cart = JSON.parse(localStorage.getItem('cart')) || [];
     const existingItem = cart.find(item => item.id === produto._id);

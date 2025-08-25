@@ -4,6 +4,8 @@ import Home from './pages/Home';
 import ProductList from './pages/ProductList';
 import ProductDetails from './pages/ProductDetails';
 import ProductForm from './pages/ProductForm';
+import FornecedorList from './pages/FornecedorList';
+import FornecedorForm from './pages/FornecedorForm';
 import Admin from './pages/Admin';
 import Cart from './pages/Cart';
 import Checkout from './pages/Checkout';
@@ -25,6 +27,9 @@ const App = () => {
           <Route path="/produtos/:id" element={<ProductDetails />} />
           <Route path="/produtos/novo" element={<ProductForm />} />
           <Route path="/produtos/editar/:id" element={<ProductForm />} />
+          <Route path="/fornecedores" element={<FornecedorList />} />
+          <Route path="/fornecedores/novo" element={<FornecedorForm />} />
+          <Route path="/fornecedores/editar/:id" element={<FornecedorForm />} />
           <Route path="/admin" element={<Admin />} />
           <Route path="/carrinho" element={<Cart />} />
           <Route path="/checkout" element={<Checkout />} />
